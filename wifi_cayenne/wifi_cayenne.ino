@@ -6,25 +6,25 @@
 #include <WiFiUdp.h>
 
 #ifndef STASSID
-#define STASSID "iPhone de Ludwig"
-#define STAPSK  "z09gh90k2gxrw"
+#define STASSID "YOUR_ACCESS_NAME"
+#define STAPSK  "YOUR_ACCESS_PASSWORD"
 #endif
 
 // CAYENNE CHANNELS DEFINITION
 #define TEMPERATURE_CHANNEL   1
 #define HUMIDITY_CHANNEL      2
-#define WATER_WINGS_CHANNEL   3
+#define WATER_WINGS_CHANNEL   3 //0 is full
 #define SOIL_MOISTURE_CHANNEL 4
 
 // SENSORS PIN DEFINITION
 #define SOIL_MOISTURE   A0
-#define DHT_SENSOR      D0
-#define WATER_WINGS     D5
+#define DHT_SENSOR      D5
+#define WATER_WINGS     D6
 
 // RELAY PINS DEFINITION
 #define FAN             D1
 #define LIGHT           D2
-#define PUMP            D3
+#define PUMP            D8
 
 // TEMPERATURE AND HUMIDITY SENSOR DEFINITION
 #define DHTTYPE DHT11
@@ -34,9 +34,9 @@ const char* ssid          = STASSID;
 const char* password      = STAPSK;
 
 // CAYENNE IDENTIFIERS
-const char* MQTT_USERNAME = "76d792b0-6109-11e9-bdb5-dfd20f02ea3f";
-const char* MQTT_PASSWORD = "3ae900a6b871295011df29232f488e7ba4be2ae0";
-const char* CLIENT_ID     = "de76f850-611f-11e9-b189-ab9cb6660d7e";
+const char* MQTT_USERNAME = "YOUR_CAYENNE_MQTT_USERNAME";
+const char* MQTT_PASSWORD = "YOUR_CAYENNE_MQTT_PASSWORD";
+const char* CLIENT_ID     = "YOUR_CAYENNE_MQTT_DEVICE_TOKEN";
 
 // THRESHOLDS DEFINITION
 int MIN_TEMPERATURE     = 10;
@@ -48,7 +48,7 @@ int MIN_WINTER_HUMIDITY = 20;
 int MAX_SUMMER_HUMIDITY = 60;
 int MAX_WINTER_HUMIDITY = 80;
 
-int START_DAY = 08;
+int START_DAY = 8;
 int END_DAY   = 20;
 
 // STEP VALUES
@@ -61,7 +61,8 @@ int   currentHour        = 0;
 int   currentMonth       = 0;
 int   currentMinute      = 0;
 
-bool isSummer = false;
+bool isSummer    = false;
+bool isAutomatic = true;
 
 DHT dht(DHT_SENSOR, DHTTYPE);
 
@@ -75,7 +76,9 @@ String timeStamp;
 void setup() {
 
   Serial.begin(115200);
-  
+
+  pinMode(WATER_WINGS, INPUT);
+  pinMode(DHT_SENSOR, INPUT);
   pinMode(FAN,   OUTPUT);
   pinMode(LIGHT, OUTPUT);
   pinMode(PUMP,  OUTPUT);
@@ -100,10 +103,13 @@ void loop() {
   currentTemperature  = dht.readTemperature();
   currentWaterWings   = digitalRead(WATER_WINGS);
   currentSoilMoisture = analogRead(SOIL_MOISTURE);
-  
-  fanControl();
-  lightControl();
-  pumpControl();
+
+  if( isAutomatic) {
+    
+      fanControl();
+      lightControl();
+      pumpControl();
+  }
 
   while(!timeClient.update()) {
     timeClient.forceUpdate();
@@ -113,6 +119,31 @@ void loop() {
   prepareDate();
 
   Cayenne.loop();
+}
+
+void Test () {
+  
+  Serial.print("Humidité : ");
+  Serial.println(currentHumidity);
+
+  Serial.print("Température : ");
+  Serial.println(currentTemperature);
+
+  Serial.print("Flotteur : ");
+  Serial.println(currentWaterWings);
+
+  Serial.print("Humidité de la Terre : ");
+  Serial.println(currentSoilMoisture);
+
+  Serial.print("Date : ");
+  Serial.println(formattedDate);
+
+  Serial.print("Minute : ");
+  Serial.println(getMinute());
+
+  Serial.print("Month : ");
+  Serial.println(getMonth());
+
 }
 
 void fanControl () {
@@ -136,8 +167,15 @@ void fanControl () {
 
 void pumpControl () {
 
-  if (currentSoilMoisture < MIN_SOIL_MOISTURE) {
-    if (analogRead(WATER_WINGS)) {
+  if(digitalRead(PUMP)) {
+    if(getMinute() != currentMinute) {
+      pumpOFF();
+    }
+  }
+  else if (currentSoilMoisture < MIN_SOIL_MOISTURE) {
+    if (!analogRead(WATER_WINGS)) {
+      
+      currentMinute = getMinute();
       pumpON();
     }
   }
@@ -166,23 +204,23 @@ void prepareDate () {
 }
 
 int getDay () {
-  return dayStamp.substring(8, 9);
+  return dayStamp.substring(8, 10).toInt();
 }
 
 int getMonth () {
-  return dayStamp.substring(5, 6);
+  return dayStamp.substring(5, 7).toInt();
 }
 
 int getYear () {
-  return dayStamp.substring(0, 3);
+  return dayStamp.substring(0, 4).toInt();
 }
 
 int getHour () {
-  return timeStamp.substring(0, 1);
+  return timeStamp.substring(0, 2).toInt();
 }
 
 int getMinute () {
-  return timeStamp.substring(3, 4);
+  return timeStamp.substring(3, 5).toInt();
 }
 
 bool checkSeason () {
