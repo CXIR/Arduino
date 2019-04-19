@@ -25,7 +25,7 @@ __Total: 200 € __
 
 ## Electrical Installation Diagram
 
-! [Electrical Mounting] (media / montage.png)
+![Electrical Mounting](media/montage.png)
 
 ## Rules of operation
 
