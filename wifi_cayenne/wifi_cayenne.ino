@@ -6,8 +6,8 @@
 #include <WiFiUdp.h>
 
 #ifndef STASSID
-#define STASSID "YOUR_ACCESS_NAME"
-#define STAPSK  "YOUR_ACCESS_PASSWORD"
+#define STASSID "iPhone de Ludwig"
+#define STAPSK  "z09gh90k2gxrw"
 #endif
 
 // CAYENNE CHANNELS DEFINITION
@@ -34,15 +34,15 @@ const char* ssid          = STASSID;
 const char* password      = STAPSK;
 
 // CAYENNE IDENTIFIERS
-const char* MQTT_USERNAME = "YOUR_CAYENNE_MQTT_USERNAME";
-const char* MQTT_PASSWORD = "YOUR_CAYENNE_MQTT_PASSWORD";
-const char* CLIENT_ID     = "YOUR_CAYENNE_MQTT_DEVICE_TOKEN";
+const char* MQTT_USERNAME = "76d792b0-6109-11e9-bdb5-dfd20f02ea3f";
+const char* MQTT_PASSWORD = "3ae900a6b871295011df29232f488e7ba4be2ae0";
+const char* CLIENT_ID     = "7f083040-62b0-11e9-933e-cf08617625ed";
 
 // THRESHOLDS DEFINITION
 int MIN_TEMPERATURE     = 10;
 int MAX_TEMPERATURE     = 25;
-int MIN_SOIL_MOISTURE   = 0;
-int MAX_SOIL_MOISTURE   = 0;
+int MIN_SOIL_MOISTURE   = 50;
+int MAX_SOIL_MOISTURE   = 80;
 int MIN_SUMMER_HUMIDITY = 20;
 int MIN_WINTER_HUMIDITY = 20;
 int MAX_SUMMER_HUMIDITY = 60;
@@ -62,7 +62,7 @@ int   currentMonth       = 0;
 int   currentMinute      = 0;
 
 bool isSummer    = false;
-bool isAutomatic = true;
+bool isAutomatic = false;
 
 DHT dht(DHT_SENSOR, DHTTYPE);
 
@@ -110,6 +110,12 @@ void loop() {
       lightControl();
       pumpControl();
   }
+
+  fanON();
+  lightON();
+  pumpON();
+
+  Test();
 
   while(!timeClient.update()) {
     timeClient.forceUpdate();
@@ -172,7 +178,7 @@ void pumpControl () {
       pumpOFF();
     }
   }
-  else if (currentSoilMoisture < MIN_SOIL_MOISTURE) {
+  else if (MIN_SOIL_MOISTURE < currentSoilMoisture < MAX_SOIL_MOISTURE ) {
     if (!analogRead(WATER_WINGS)) {
       
       currentMinute = getMinute();
@@ -186,7 +192,7 @@ void pumpControl () {
 
 void lightControl () {
 
-  if (START_DAY <currentHour < END_DAY) {
+  if (START_DAY < currentHour < END_DAY) {
     
     if (!digitalRead(LIGHT)) {
       lightON();
